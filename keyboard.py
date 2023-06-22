@@ -31,9 +31,10 @@ keyboard_second = {
 keyboard_next = {
     "one_time": True,
     "buttons": [
-        [get_button('Дальше', 'primary'),get_button('Пока', 'secondary')]
+        [get_button('Дальше', 'primary'), get_button('Пока', 'secondary')]
     ]
 }
+
 
 keyboard_error = {
     "one_time": True,
@@ -41,6 +42,8 @@ keyboard_error = {
         [get_button('Поиск', 'primary')]
     ]
 }
+
+
 keyboard = json.dumps(keyboard, ensure_ascii=False).encode('utf-8')
 keyboard = str(keyboard.decode('utf-8'))
 keyboard_second = json.dumps(keyboard_second, ensure_ascii=False).encode('utf-8')

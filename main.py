@@ -3,11 +3,9 @@ from config import*
 from keyboard import keyboard, keyboard_second, keyboard_next, keyboard_error
 from DB_core import add_in_db, compare
 
-
 import datetime
 import vk_api
 import requests
-
 
 from vk_api.longpoll import VkLongPoll, VkEventType
 
@@ -28,108 +26,81 @@ def send_reply(id, reply_text, kb=None, attachment=None):
                        })
 
 
-# ф-я определение имени пользователя ботом
-def get_name(user_id):
-    url = f"https://api.vk.com/method/users.get"
+# ф-я определения параметров пользователя ботом
+def get_parameters(user_id):
+    url = "https://api.vk.com/method/users.get"
     params = {
         "access_token": user_token,
         "user_ids": user_id,
         "v": "5.131",
-        "fields": "first_name"
+        "fields": "first_name, sex, bdate, city"
     }
     rep = requests.get(url, params=params)
     response = rep.json()
     try:
         data_dict = response['response']
-        for i in data_dict:
-            first_name = i.get('first_name')
-            return first_name
+
+        parameters_l = []
+
+        for dictionary in data_dict:
+            parameters_l.append({'first_name': dictionary['first_name'],
+                                 'sex': dictionary['sex'],
+                                 'bdate': dictionary['bdate'],
+                                 'city_data': dictionary['city']
+                                 })
+        return parameters_l
     except KeyError:
         send_reply(id, "У меня возникла ошибка")
 
 
-# ф-я определения пола пользователя + смена для поиска
-def sex_type(user_id):
-    url = f"https://api.vk.com/method/users.get"
-    params = {
-        "access_token": user_token,
-        "user_ids": user_id,
-        "v": "5.131",
-        "fields": "sex"
-    }
-    rep = requests.get(url, params=params)
-    response = rep.json()
+# ф-я смена пола для поиска
+def sex_type(user_id, sex):
     try:
-        data_list = response['response']
-        for i in data_list:
-            if i.get('sex') == 2:
-                look_up_sex = 1
-                return look_up_sex
-            elif i.get('sex') == 1:
-                look_up_sex = 2
-                return look_up_sex
+        sex = sex
+        if sex == 2:
+            look_up_sex = 1
+            return look_up_sex
+        elif sex == 1:
+            look_up_sex = 2
+            return look_up_sex
     except KeyError:
         send_reply(user_id, "У меня возникла ошибка")
 
 
 # ф-я определения минимального возраста с ограничениями
-def ask_min_age(user_id):
-    url = f"https://api.vk.com/method/users.get"
-    params = {
-        "access_token": user_token,
-        "user_ids": user_id,
-        "v": "5.131",
-        "fields": "bdate"
-    }
-    rep = requests.get(url, params=params)
-    response = rep.json()
+def ask_min_age(user_id, bdate):
     try:
-        data_list = response['response']
-        for i in data_list:
-            birth_date = i.get('bdate')
-            if birth_date is not None:
-                birth_date_list = birth_date.split('.')
-                if len(birth_date_list) == 3:
-                    year = int(birth_date_list[2])
-                    today_year = int(datetime.date.today().year)
-                    user_age = today_year - year
-                    send_reply(id, f"Тебе сейчас {user_age} лет! Установим этот возраст минимальным?")
-                    send_reply(id, "Ответь Да или Нет", keyboard_second)
-                    for event in longpoll.listen():
-                        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                            message = event.text.lower()
-                            if message == "да":
-                                min_age = user_age
-                                return min_age
-                            elif message == "нет":
-                                send_reply(user_id, "Введи минимальный возраст для поиска(минимум 18 лет):")
-                                for event in longpoll.listen():
-                                    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                                        if int(event.text) <= 17:
-                                            send_reply(user_id, "Минимальный возраст для поиска - от 18 лет!")
-                                            send_reply(user_id,
-                                                       "Попробуй еще раз! Введи минимальный возраст для поиска(минимум 18 лет):")
-                                        elif int(event.text) > 18:
-                                            min_age = event.text
-                                            return min_age
-                                        else:
-                                            send_reply(user_id, "Не понимаю тебя, попробуй еще раз")
-                            else:
-                                send_reply(user_id, "Не понимаю тебя, попробуй еще раз")
-                if len(birth_date_list) == 2 or birth_date not in data_list:
-                    send_reply(user_id, "Введи минимальный возраст для поиска(минимум 18 лет):")
-                    for event in longpoll.listen():
-                        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                            if int(event.text) <= 17:
-                                send_reply(user_id, "Минимальный возраст для поиска - от 18 лет!")
-                                send_reply(user_id,
-                                           "Попробуй еще раз! Введи минимальный возраст для поиска(минимум 18 лет):")
-                            elif int(event.text) > 18:
-                                min_age = event.text
-                                return min_age
-                            else:
-                                send_reply(user_id, "Не понимаю тебя, попробуй еще раз")
-            else:
+        birth_date = bdate
+        if birth_date is not None:
+            birth_date_list = birth_date.split('.')
+            if len(birth_date_list) == 3:
+                year = int(birth_date_list[2])
+                today_year = int(datetime.date.today().year)
+                user_age = today_year - year
+                send_reply(user_id, f"Тебе сейчас {user_age} лет! Установим этот возраст минимальным?")
+                send_reply(user_id, "Ответь Да или Нет", keyboard_second)
+                for event in longpoll.listen():
+                    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                        message = event.text.lower()
+                        if message == "да":
+                            min_age = user_age
+                            return min_age
+                        elif message == "нет":
+                            send_reply(user_id, "Введи минимальный возраст для поиска(минимум 18 лет):")
+                            for event in longpoll.listen():
+                                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                                    if int(event.text) <= 17:
+                                        send_reply(user_id, "Минимальный возраст для поиска - от 18 лет!")
+                                        send_reply(user_id,
+                                                   "Попробуй еще раз! Введи минимальный возраст для поиска(минимум 18 лет):")
+                                    elif int(event.text) > 18:
+                                        min_age = event.text
+                                        return min_age
+                                    else:
+                                        send_reply(user_id, "Не понимаю тебя, попробуй еще раз")
+                        else:
+                            send_reply(user_id, "Не понимаю тебя, попробуй еще раз")
+            if len(birth_date_list) == 2 or birth_date is None:
                 send_reply(user_id, "Введи минимальный возраст для поиска(минимум 18 лет):")
                 for event in longpoll.listen():
                     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -142,8 +113,21 @@ def ask_min_age(user_id):
                             return min_age
                         else:
                             send_reply(user_id, "Не понимаю тебя, попробуй еще раз")
+        else:
+            send_reply(user_id, "Введи минимальный возраст для поиска(минимум 18 лет):")
+            for event in longpoll.listen():
+                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                    if int(event.text) <= 17:
+                        send_reply(user_id, "Минимальный возраст для поиска - от 18 лет!")
+                        send_reply(user_id,
+                                   "Попробуй еще раз! Введи минимальный возраст для поиска(минимум 18 лет):")
+                    elif int(event.text) > 18:
+                        min_age = event.text
+                        return min_age
+                    else:
+                        send_reply(user_id, "Не понимаю тебя, попробуй еще раз")
     except (KeyError, NameError, TypeError):
-        send_reply(id, f"Не понимаю тебя! Попробуй начать сначала, {get_name(id)}", keyboard_error)
+        send_reply(id, f"Не понимаю тебя! Попробуй начать сначала", keyboard_error)
 
 
 # ф-я максимального порога возраста
@@ -163,7 +147,7 @@ def ask_max_age(user_id):
 
 # Поиск ID Города по названию
 def city_id_search(user_id, city_name):
-    url = f'https://api.vk.com/method/database.getCities'
+    url = "https://api.vk.com/method/database.getCities"
     params = {
         'access_token': user_token,
         'country_id': 1,
@@ -183,70 +167,58 @@ def city_id_search(user_id, city_name):
                 found_city_id = i.get('id')
                 return found_city_id
     except (KeyError, NameError, TypeError):
-        send_reply(id, f"Не могу найти этот город! Попробуй заново, {get_name(id)}", keyboard_error)
+        send_reply(user_id, f"Не могу найти этот город! Попробуй заново", keyboard_error)
 
 
 # Поиск города основной
-def city_search(user_id):
-    url = f"https://api.vk.com/method/users.get"
-    params = {
-        "access_token": user_token,
-        "user_ids": user_id,
-        "v": "5.131",
-        "fields": "city"
-    }
-    rep = requests.get(url, params=params)
-    response = rep.json()
+def city_search(user_id, city_data):
     try:
-        data_list = response['response']
-        for i in data_list:
-            if 'city' in i:
-                city = i.get('city')
-                city_id = str(city.get('id'))
-                user_city_name = str(city.get('title'))
-                send_reply(id, f"Твой город {user_city_name}, будем искать по нему?")
-                send_reply(id, "Ответь Да или Нет", keyboard_second)
-                for event in longpoll.listen():
-                    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                        if event.text.lower() == "да":
-                            return city_id
-                        elif event.text.lower() == "нет":
-                            send_reply(id, "Ок, тогда напиши название города в котором будем искать:")
-                            for event in longpoll.listen():
-                                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                                    if event.text.isdigit():
-                                        send_reply(user_id, "Вводите только русские буквы!")
-                                    else:
-                                        city_name = event.text.lower()
-                                        city_id = city_id_search(user_id, city_name)
-                                        return city_id
-            elif 'city' not in i:
-                send_reply(id, "Напиши название города в котором будем искать:")
-                for event in longpoll.listen():
-                    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                        if event.text.isdigit() is True:
-                            send_reply(user_id, "Вводите только русские буквы!")
-                        else:
-                            city_name = event.text.lower()
-                            city_id = city_id_search(user_id, city_name)
-                            return city_id
-
+        data_dict = city_data
+        if data_dict:
+            city_id = str(data_dict['id'])
+            user_city_name = data_dict['title']
+            send_reply(user_id, f"Твой город {user_city_name}, будем искать по нему?")
+            send_reply(user_id, "Ответь Да или Нет", keyboard_second)
+            for event in longpoll.listen():
+                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                    if event.text.lower() == "да":
+                        return city_id
+                    elif event.text.lower() == "нет":
+                        send_reply(user_id, "Ок, тогда напиши название города в котором будем искать:")
+                        for event in longpoll.listen():
+                            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                                if event.text.isdigit():
+                                    send_reply(user_id, "Вводите только русские буквы!")
+                                else:
+                                    city_name = event.text.lower()
+                                    city_id = city_id_search(user_id, city_name)
+                                    return city_id
+        else:
+            send_reply(user_id, "Напиши название города в котором будем искать:")
+            for event in longpoll.listen():
+                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                    if event.text.isdigit() is True:
+                        send_reply(user_id, "Вводите только русские буквы!")
+                    else:
+                        city_name = event.text.lower()
+                        city_id = city_id_search(user_id, city_name)
+                        return city_id
     except (KeyError, NameError, TypeError):
-        send_reply(id, f"Не понимаю тебя! Попробуй написать что-то другое, {get_name(id)}", keyboard_error)
+        send_reply(user_id, f"Не понимаю тебя! Попробуй написать что-то другое", keyboard_error)
 
 
 # ф-я сохранения усовий поиска для сессии
-def search_params(user_id):
-    params_list = [sex_type(user_id),
-                   ask_min_age(user_id),
+def search_params(user_id, date, sex, city_data):
+    params_list = [sex_type(user_id, sex),
+                   ask_min_age(user_id, date),
                    ask_max_age(user_id),
-                   city_search(user_id)
+                   city_search(user_id, city_data)
                    ]
     return params_list
 
 
 def find_photos(user_id):
-    url = f"https://api.vk.com/method/photos.get"
+    url = "https://api.vk.com/method/photos.get"
     params = {
         "access_token": user_token,
         "owner_id": user_id,
@@ -275,9 +247,9 @@ def find_photos(user_id):
     return result[:3]
 
 
-# ф-я поиска по параметрам
+# ф-я поиска пары по параметрам
 def find_match(user_id, sex, age_from, age_to, city_s, offset=None):
-    url = f'https://api.vk.com/method/users.search'
+    url = 'https://api.vk.com/method/users.search'
     params = {'access_token': user_token,
               'v': '5.131',
               'offset': offset,
@@ -306,100 +278,4 @@ def find_match(user_id, sex, age_from, age_to, city_s, offset=None):
                 continue
         return user_params
     except (KeyError, NameError, TypeError):
-        send_reply(id, f"Ошибка поиска! Попробуй написать что-то другое, {get_name(id)}", keyboard_error)
-
-
-# Запуск
-for event in longpoll.listen():
-    if event.type == VkEventType.MESSAGE_NEW:
-        if event.to_me:
-            message = event.text.lower()
-            id = event.user_id
-            kb = keyboard
-            try:
-                if message == "привет":
-                    send_reply(id, f"Привет, {get_name(id)}! Я бот знакомств ВК", keyboard)
-                    send_reply(id, "Чтобы начать поиск людей - напиши мне Поиск")
-                    send_reply(id, "Если захочешь остановить поиск на сегодня - напиши мне Пока")
-
-                elif message == "пока":
-                    send_reply(id, "Пока:'(")
-
-                elif message == "hi":
-                    send_reply(id, "Я умею разговариать только на русском:(( прости")
-
-                elif message == "bye":
-                    send_reply(id, "Я умею разговариать только на русском:(( прости")
-
-                elif message == "поиск":
-                    offset = 0
-                    params_list = search_params(id)
-                    users = (find_match(id, params_list[0], params_list[1], (params_list[2]), (params_list[3])))
-                    if users:
-                        user = users.pop()
-                        result = compare(id, user['id'])
-                        if result is not True:
-                            user_photos_all = find_photos(user['id'])
-                            ph_attachment = ''
-                            for number, photo in enumerate(user_photos_all):
-                                ph_attachment += f'photo{photo["owner_id"]}_{photo["id"]},'
-                                if number == 2:
-                                    break
-                            send_reply(id, f"Смотри кого я нашел: {user['name']} {user['user_link ']}",
-                                       keyboard_next,
-                                       attachment=ph_attachment)
-                            send_reply(id, "Напиши дальше")
-                            add_in_db(id, user['id'])
-                        else:
-                            send_reply(id, "Упс, эту анкету я уже показывал, нажми или напиши ДАЛЬШЕ", keyboard_next)
-                            continue
-
-                elif message == "дальше":
-                    if users:
-                        user = users.pop()
-                        result = compare(id, user['id'])
-                        if result is not True:
-                            user_photos_all = find_photos(user['id'])
-                            ph_attachment = ''
-                            for number, photo in enumerate(user_photos_all):
-                                ph_attachment += f'photo{photo["owner_id"]}_{photo["id"]},'
-                                if number == 2:
-                                    break
-                            send_reply(id, f"Смотри кого я нашел: {user['name']} {user['user_link ']}",
-                                       keyboard_next,
-                                       attachment=ph_attachment)
-                            send_reply(id, "Напиши дальше")
-                            add_in_db(id, user['id'])
-                        else:
-                            send_reply(id, "Упс, эту анкету я уже показывал, нажми или напиши ДАЛЬШЕ", keyboard_next)
-
-                    else:
-                        offset += 10
-                        users = (
-                            find_match(id, params_list[0], params_list[1], (params_list[2]), (params_list[3]), offset))
-                        if users:
-                            user = users.pop()
-                            result = compare(id, user['id'])
-                            if result is not True:
-                                user_photos_all = find_photos(user['id'])
-                                ph_attachment = ''
-                                for number, photo in enumerate(user_photos_all):
-                                    ph_attachment += f'photo{photo["owner_id"]}_{photo["id"]},'
-                                    if number == 2:
-                                        break
-
-                                send_reply(id, f"Смотри кого я нашел: {user['name']} {user['user_link ']}",
-                                           keyboard_next,
-                                           attachment=ph_attachment)
-                                send_reply(id, "Напиши дальше")
-                                add_in_db(id, user['id'])
-                            else:
-                                send_reply(id,
-                                           "Упс, эту анкету я уже показывал, нажми или напиши ДАЛЬШЕ",
-                                           keyboard_next)
-
-                else:
-                    send_reply(id, f"Не понимаю тебя! Попробуй написать что-то другое, {get_name(id)}", keyboard_error)
-
-            except (KeyError, NameError, TypeError):
-                send_reply(id, f"Не понимаю тебя! Попробуй написать что-то другое, {get_name(id)}", keyboard_error)
+        send_reply(user_id, f"Ошибка поиска! Попробуй написать что-то другое", keyboard_error)
